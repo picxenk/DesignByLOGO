@@ -1,5 +1,7 @@
+<!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8"/>
 <title> Design by LOGO </title>
 <script src="ometa/prototype.js"></script>
 <script src="ometa/prototype-fix.js"></script>
@@ -18,35 +20,32 @@
 var canvasColor = '#E7FFD8';
 
 function toggleVisible(id) {
-  var style = document.getElementById(id).style
-  style.visibility = style.visibility == "hidden" ? "visible" : "hidden"
-  style.display    = style.display    == "block"  ? "none"    : "block"
+  var style = document.getElementById(id).style;
+  style.visibility = style.visibility == "hidden" ? "visible" : "hidden";
+  style.display    = style.display    == "block"  ? "none"    : "block";
 }
 function initializeThisPage() {
     $('workspaceForm').source.onkeydown = onShortCutKey;
     $('workspaceForm').translation.value = '';
     $('workspaceForm').transcript.value  = '';
-    addCanvas();
+    setupCanvas();
     updateMeta();
 }
 function updateMeta() {
   var translationError = function(m, i) { alert("Translation error - please tell Alex about this!"); throw fail },
-      tree             = BSOMetaJSParser.matchAll($('workspaceForm').meta_source_code.value, "topLevel", undefined, function(m, i) { throw fail.delegated({errorPos: i}) })
-  $('workspaceForm').translation.value = BSOMetaJSTranslator.match(tree, "trans", undefined, translationError)
-  eval($('workspaceForm').translation.value)
+      tree             = BSOMetaJSParser.matchAll($('workspaceForm').meta_source_code.value, "topLevel", undefined, function(m, i) { throw fail.delegated({errorPos: i}) });
+  $('workspaceForm').translation.value = BSOMetaJSTranslator.match(tree, "trans", undefined, translationError);
+  eval($('workspaceForm').translation.value);
 }
 
 function run() {
     translateCode($('workspaceForm').source.value);
 }
 
-function addCanvas() {
-    canvas = document.createElement('canvas')
-    canvas.setAttribute('width',  '300')
-    canvas.setAttribute('height', '300')
-    $('playArea').appendChild(canvas)
-    ctxt = canvas.getContext('2d')
-    ctxt.fillStyle = canvasColor;;
+function setupCanvas() {
+    canvas = document.getElementById('screen');
+    ctxt = canvas.getContext('2d');
+    ctxt.fillStyle = canvasColor;
 }
 </script>
 </head>
@@ -56,11 +55,15 @@ function addCanvas() {
 <form id="workspaceForm">
 <div id="logoIDE">
     <div id="ideHeader">Design by LOGO</div>
+    <div id="ideMenu">
+        <input value="RUN" onclick="run()" type="button">
+    </div>
     <div id="ideTop">
         <div id="playArea">
+            <canvas id="screen" width="300px" height="300px"/>
         </div>
         <div id="codeArea">
-        <textarea rows="15" name="source" class="source">
+        <textarea rows="14" name="source" class="source">
 to spiral :size :angle
     if :size > 0 [
         fd :size
@@ -74,10 +77,11 @@ clear
 repeat 6 [
     rt 60
     spiral 30 60
-]</textarea>
-        <input value="RUN" onclick="run()" type="button">
-        <input value="print it (ctrl+p)" onclick="printIt()" type="button">
-        <input value="do it (ctrl+d)" onclick="doIt()" type="button">
+]
+            </textarea>
+            <input value="print it (ctrl+p)" onclick="printIt()" type="button">
+            <input value="do it (ctrl+d)" onclick="doIt()" type="button">
+            (Smalltalk-like workspace)
         </div>
     </div>
     <div id="ideBottom">
@@ -100,7 +104,7 @@ Edit a meta code to extend LOGO language!!
 <textarea cols="80" rows="30" name="meta_source_code" >
 Scheduler = function() {
   this.tasks   = []
-  this.timeout = 20
+  this.timeout = 10
   this.tick()
 }
 Scheduler.prototype.schedule = function(t) { this.tasks.push(t) }
