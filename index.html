@@ -1,0 +1,219 @@
+<html>
+<head>
+<title> Design by LOGO </title>
+<script src="ometa/prototype.js"></script>
+<script src="ometa/prototype-fix.js"></script>
+<script src="ometa/lib.js"></script>
+<script src="ometa/ometa-base.js"></script>
+<script src="ometa/parser.js"></script>
+<script src="ometa/bs-js-compiler.js"></script>
+<script src="ometa/bs-ometa-compiler.js"></script>
+<script src="ometa/bs-ometa-optimizer.js"></script>
+<script src="ometa/bs-ometa-js-compiler.js"></script>
+<script src="ometa/bs-project-list-parser.js"></script>
+<script src="ometa/workspace.js"></script>
+<link rel="stylesheet" href="logo.css" />
+<link href='http://fonts.googleapis.com/css?family=Nunito' rel='stylesheet' type='text/css'>
+<script>
+var canvasColor = '#E7FFD8';
+
+function toggleVisible(id) {
+  var style = document.getElementById(id).style
+  style.visibility = style.visibility == "hidden" ? "visible" : "hidden"
+  style.display    = style.display    == "block"  ? "none"    : "block"
+}
+function initializeThisPage() {
+    $('workspaceForm').source.onkeydown = onShortCutKey;
+    $('workspaceForm').translation.value = '';
+    $('workspaceForm').transcript.value  = '';
+    addCanvas();
+    updateMeta();
+}
+function updateMeta() {
+  var translationError = function(m, i) { alert("Translation error - please tell Alex about this!"); throw fail },
+      tree             = BSOMetaJSParser.matchAll($('workspaceForm').meta_source_code.value, "topLevel", undefined, function(m, i) { throw fail.delegated({errorPos: i}) })
+  $('workspaceForm').translation.value = BSOMetaJSTranslator.match(tree, "trans", undefined, translationError)
+  eval($('workspaceForm').translation.value)
+}
+
+function run() {
+    translateCode($('workspaceForm').source.value);
+}
+
+function addCanvas() {
+    canvas = document.createElement('canvas')
+    canvas.setAttribute('width',  '300')
+    canvas.setAttribute('height', '300')
+    $('playArea').appendChild(canvas)
+    ctxt = canvas.getContext('2d')
+    ctxt.fillStyle = canvasColor;;
+}
+</script>
+</head>
+
+<body onLoad="initializeThisPage()">
+
+<form id="workspaceForm">
+<div id="logoIDE">
+    <div id="ideHeader">Design by LOGO</div>
+    <div id="ideTop">
+        <div id="playArea">
+        </div>
+        <div id="codeArea">
+        <textarea rows="15" name="source" class="source">
+to spiral :size :angle
+    if :size > 0 [
+        fd :size
+        rt :angle
+        spiral (:size - 1) :angle
+    ]
+end
+
+home
+clear
+repeat 6 [
+    rt 60
+    spiral 30 60
+]</textarea>
+        <input value="RUN" onclick="run()" type="button">
+        <input value="print it (ctrl+p)" onclick="printIt()" type="button">
+        <input value="do it (ctrl+d)" onclick="doIt()" type="button">
+        </div>
+    </div>
+    <div id="ideBottom">
+        <div id="system_out">
+            <b>Translation</b>
+            <br/>
+            <textarea rows=4 name=translation class="systemout">
+            </textArea>
+            <br/>
+            <b>Transcript</b>
+            <br>
+            <textarea rows=4 name=transcript class="systemout">
+            </textArea>
+        </div>
+<input value="show/hide Meta Code" onclick="toggleVisible('meta_source')" type="button">
+<input value="update Meta" onclick="updateMeta()" style="margin-bottom: 0.4em;" type="button">
+Edit a meta code to extend LOGO language!!
+<br>
+<div id="meta_source" style="visibility: hidden; display: none;">
+<textarea cols="80" rows="30" name="meta_source_code" >
+Scheduler = function() {
+  this.tasks   = []
+  this.timeout = 20
+  this.tick()
+}
+Scheduler.prototype.schedule = function(t) { this.tasks.push(t) }
+Scheduler.prototype.tick = function() {
+  var s = this
+  if (this.tasks.length > 0)
+    this.tasks.shift()()
+  setTimeout(function() { s.tick() }, this.timeout)
+}
+
+theScheduler = new Scheduler()
+
+Turtle = function() {
+  this.x       = 0
+  this.y       = 0
+  this.angle   = 0
+  this.color   = "black"
+  this.penDown = true
+}
+Turtle.prototype.forwardBy = function(n) {
+  var s = this
+  theScheduler.schedule(function() {
+    ctxt.strokeStyle = s.color
+    ctxt.beginPath()
+    ctxt.moveTo(s.x, s.y)
+    s.x += n * Math.cos(s.angle)
+    s.y += n * Math.sin(s.angle)
+    if (s.penDown) {
+      ctxt.lineTo(s.x, s.y)
+    }
+    ctxt.stroke()
+  })
+}
+Turtle.prototype.turnBy = function(n) {
+  var s = this
+  theScheduler.schedule(function() { s.angle += n * Math.PI / 180 })
+}
+
+// this will remove it after your done with this example
+// $('playArea').removeChild(canvas)
+
+// logo
+Turtle.prototype.rt = function(n) { this.turnBy(n)       }
+Turtle.prototype.lt = function(n) { this.turnBy(-n)      }
+Turtle.prototype.fd = function(n) { this.forwardBy(n)    }
+Turtle.prototype.bk = function(n) { this.forwardBy(-n)   }
+Turtle.prototype.pu = function()  { var s = this; theScheduler.schedule(function() {s.penDown = false}) }
+Turtle.prototype.pd = function()  { var s = this; theScheduler.schedule(function() {s.penDown = true}) }
+Turtle.prototype["if"] = function(cond, block) { if (cond) block() }
+Turtle.prototype.home = function() { 
+  var s = this
+  theScheduler.schedule(function() {
+    s.x       = 150
+    s.y       = 150
+    s.angle   = 0
+  })
+}
+Turtle.prototype.clear = function() { 
+  ctxt.clearRect(0, 0, canvas.width, canvas.height);
+  ctxt.fillStyle = canvasColor;
+  ctxt.fillRect(0, 0, canvas.width, canvas.height);
+}
+Turtle.prototype["repeat"] = function(times, block) { for ( cnt = 1 ; cnt <= times ; cnt++ ) {block()}}
+Turtle.prototype.px = function(n) { var s = this; theScheduler.schedule(function() {s.x = n}) }
+Turtle.prototype.py = function(n) { var s = this; theScheduler.schedule(function() {s.y = n}) }
+Turtle.prototype.toward = function(n) { var s = this; theScheduler.schedule(function() {s.angle = n * Math.PI / 180}) }
+
+ometa LogoTranslator <: Parser {
+  name         = spaces firstAndRest(`letter, `letterOrDigit):xs -> xs.join(''),
+  cmdName      = name:n
+                   ?(n != 'to') ?(n != 'end') ?(n != 'output')   -> n,
+  number       = spaces digit+:ds                                -> ds.join(''),
+  arg          = ":" name,
+  cmds         = cmd*:xs                                         -> xs.delimWith(';').join(''),
+  block        = "[" cmds:xs "]"                                 -> ('(function() {' + xs + '})'),
+  primExpr     = arg | number | block | "(" (expr | cmd):x ")"   -> x,
+  mulExpr      = mulExpr:x "*" primExpr:y                        -> (x + '*' + y)
+               | mulExpr:x "/" primExpr:y                        -> (x + '/' + y)
+               | primExpr,
+  addExpr      = addExpr:x "+" mulExpr:y                         -> (x + '+' + y)
+               | addExpr:x "-" mulExpr:y                         -> (x + '-' + y)
+               | mulExpr,
+  relExpr      = addExpr:x "<"  addExpr:y                        -> (x + '<'  + y)
+               | addExpr:x "<=" addExpr:y                        -> (x + '<=' + y)
+               | addExpr:x ">"  addExpr:y                        -> (x + '>'  + y)
+               | addExpr:x ">=" addExpr:y                        -> (x + '>=' + y)
+               | addExpr,
+  expr         = relExpr,
+  cmd          = "output" expr:x                                 -> ('return ' + x)
+               | cmdName:n expr*:args                            -> ('_this["' + n + '"].apply(_this, [' +
+                                                                       args.delimWith(',').join('') + '])'),
+  decl         = "to" cmdName:n arg*:args cmds:body  "end"       -> ('_this["' + n + '"]=function(' +
+                                                                       args.delimWith(',').join('') + '){' + body + '}'),
+  topLevelCmd  = decl | cmd,
+  topLevelCmds = topLevelCmd*:xs spaces end                      -> ('(function(){var _this=this;' +
+                                                                       xs.delimWith(',').join('') + '})')
+}
+
+Turtle.prototype.eval = function(code) { eval(LogoTranslator.matchAll(code, "topLevelCmds")).apply(this) }
+
+smiley = new Turtle();
+translateCode = function(code) { smiley.eval(code); return "undefined" };
+smiley.clear();
+smiley.home();
+</textarea>
+</div>
+    </div>
+</div>
+</form>
+<br/>
+<div id="footer">
+This project is inspired by <a href="http://dbn.media.mit.edu/">DBN</a>, <a href="http://www.yengawa.com/sites/default/files/uploads/Greetings2010NewYear/index.html">Koji-san's greeting project</a>, and built on <a href="http://www.tinlizzie.org/ometa/">OMeta/JS</a>.
+</div>
+
+</body>
+</html>
